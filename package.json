@@ -11,8 +11,10 @@
       "darwin"
     ],
     "path": [
-      "binary_distrib",
-      "binary_distrib/**"
+      "win64",
+      "win64/**",
+      "macos",
+      "macos/**"
     ]
   },
   "scripts": {
