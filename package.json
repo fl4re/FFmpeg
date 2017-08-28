@@ -1,0 +1,24 @@
+{
+  "name": "@sb/ffmpeg",
+  "version": "3.4.1",
+  "description": "Fl4re FFmpeg",
+  "private": false,
+  "binary": {
+    "file": "{package_name}/{package_version}/ffmpeg-{package_version}-{platform}-{arch}.tar.gz",
+    "host": "https://registry-node.starbreeze.com/-/releases",
+    "os": [
+      "win32",
+      "darwin"
+    ],
+    "path": [
+      "binary_distrib",
+      "binary_distrib/**"
+    ]
+  },
+  "scripts": {
+    "install": "prades install"
+  },
+  "dependencies": {
+    "@sb/prades": "^0.4.1"
+  }
+}
