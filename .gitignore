@@ -93,3 +93,4 @@
 /binary_distrib
 /npm-debug.log
 /node_modules
+/macos/include
