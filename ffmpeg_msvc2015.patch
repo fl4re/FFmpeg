@@ -1,0 +1,30 @@
+diff --git a/compat/msvcrt/snprintf.c b/compat/msvcrt/snprintf.c
+index c64653f..0465a14 100644
+--- a/compat/msvcrt/snprintf.c
++++ b/compat/msvcrt/snprintf.c
+@@ -26,6 +26,7 @@
+ 
+ #include "compat/va_copy.h"
+ #include "libavutil/error.h"
++#include "snprintf.h"
+ 
+ #if defined(__MINGW32__)
+ #define EOVERFLOW EFBIG
+diff --git a/configure b/configure
+index e4c1c24..38f0a4b 100755
+--- a/configure
++++ b/configure
+@@ -4322,9 +4322,10 @@ case $libc_type in
+         ;;
+     msvcrt)
+         add_compat strtod.o strtod=avpriv_strtod
+-        add_compat msvcrt/snprintf.o snprintf=avpriv_snprintf   \
+-                                     _snprintf=avpriv_snprintf  \
+-                                     vsnprintf=avpriv_vsnprintf
++        add_compat msvcrt/snprintf.o
++#        add_compat msvcrt/snprintf.o snprintf=avpriv_snprintf   \
++#                                     _snprintf=avpriv_snprintf  \
++#                                     vsnprintf=avpriv_vsnprintf
+         ;;
+ esac
+ 

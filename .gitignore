@@ -88,3 +88,10 @@
 /tools/seek_print
 /tools/uncoded_frame
 /tools/zmqsend
+
+
+/binary_distrib
+/npm-debug.log
+/node_modules
+/macos/include
+/win64/include
