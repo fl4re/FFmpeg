@@ -1,6 +1,6 @@
 {
   "name": "@sb/ffmpeg",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "description": "Fl4re FFmpeg",
   "private": false,
   "binary": {
