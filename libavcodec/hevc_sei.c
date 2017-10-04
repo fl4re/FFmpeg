@@ -124,8 +124,8 @@ static int decode_nal_sei_display_orientation(HEVCSEIDisplayOrientation *s, GetB
     return 0;
 }
 
-static int decode_pic_timing(HEVCSEIContext *s, GetBitContext *gb, const HEVCParamSets *ps,
-                             void *logctx)
+static int decode_nal_sei_pic_timing(HEVCSEIContext *s, GetBitContext *gb, const HEVCParamSets *ps,
+                                     void *logctx, int size)
 {
     HEVCSEIPictureTiming *h = &s->picture_timing;
     HEVCSPS *sps;
@@ -137,17 +137,21 @@ static int decode_pic_timing(HEVCSEIContext *s, GetBitContext *gb, const HEVCPar
     if (sps->vui.frame_field_info_present_flag) {
         int pic_struct = get_bits(gb, 4);
         h->picture_struct = AV_PICTURE_STRUCTURE_UNKNOWN;
-        if (pic_struct == 2) {
+        if (pic_struct == 2 || pic_struct == 10 || pic_struct == 12) {
             av_log(logctx, AV_LOG_DEBUG, "BOTTOM Field\n");
             h->picture_struct = AV_PICTURE_STRUCTURE_BOTTOM_FIELD;
-        } else if (pic_struct == 1) {
+        } else if (pic_struct == 1 || pic_struct == 9 || pic_struct == 11) {
             av_log(logctx, AV_LOG_DEBUG, "TOP Field\n");
             h->picture_struct = AV_PICTURE_STRUCTURE_TOP_FIELD;
         }
         get_bits(gb, 2);                   // source_scan_type
         get_bits(gb, 1);                   // duplicate_flag
+        skip_bits1(gb);
+        size--;
     }
-    return 1;
+    skip_bits_long(gb, 8 * size);
+
+    return 0;
 }
 
 static int decode_registered_user_data_closed_caption(HEVCSEIA53Caption *s, GetBitContext *gb,
@@ -232,7 +236,7 @@ static int decode_nal_sei_user_data_registered_itu_t_t35(HEVCSEIContext *s, GetB
     return 0;
 }
 
-static int active_parameter_sets(HEVCSEIContext *s, GetBitContext *gb, void *logctx)
+static int decode_nal_sei_active_parameter_sets(HEVCSEIContext *s, GetBitContext *gb, void *logctx)
 {
     int num_sps_ids_minus1;
     int i;
@@ -261,6 +265,13 @@ static int active_parameter_sets(HEVCSEIContext *s, GetBitContext *gb, void *log
     return 0;
 }
 
+static int decode_nal_sei_alternative_transfer(HEVCSEIAlternativeTransfer *s, GetBitContext *gb)
+{
+    s->present = 1;
+    s->preferred_transfer_characteristics = get_bits(gb, 8);
+    return 0;
+}
+
 static int decode_nal_sei_prefix(GetBitContext *gb, HEVCSEIContext *s, const HEVCParamSets *ps,
                                  int type, int size, void *logctx)
 {
@@ -272,22 +283,17 @@ static int decode_nal_sei_prefix(GetBitContext *gb, HEVCSEIContext *s, const HEV
     case HEVC_SEI_TYPE_DISPLAY_ORIENTATION:
         return decode_nal_sei_display_orientation(&s->display_orientation, gb);
     case HEVC_SEI_TYPE_PICTURE_TIMING:
-        {
-            int ret = decode_pic_timing(s, gb, ps, logctx);
-            av_log(logctx, AV_LOG_DEBUG, "Skipped PREFIX SEI %d\n", type);
-            skip_bits(gb, 8 * size);
-            return ret;
-        }
+        return decode_nal_sei_pic_timing(s, gb, ps, logctx, size);
     case HEVC_SEI_TYPE_MASTERING_DISPLAY_INFO:
         return decode_nal_sei_mastering_display_info(&s->mastering_display, gb);
     case HEVC_SEI_TYPE_CONTENT_LIGHT_LEVEL_INFO:
         return decode_nal_sei_content_light_info(&s->content_light, gb);
     case HEVC_SEI_TYPE_ACTIVE_PARAMETER_SETS:
-        active_parameter_sets(s, gb, logctx);
-        av_log(logctx, AV_LOG_DEBUG, "Skipped PREFIX SEI %d\n", type);
-        return 0;
+        return decode_nal_sei_active_parameter_sets(s, gb, logctx);
     case HEVC_SEI_TYPE_USER_DATA_REGISTERED_ITU_T_T35:
         return decode_nal_sei_user_data_registered_itu_t_t35(s, gb, size);
+    case HEVC_SEI_TYPE_ALTERNATIVE_TRANSFER_CHARACTERISTICS:
+        return decode_nal_sei_alternative_transfer(&s->alternative_transfer, gb);
     default:
         av_log(logctx, AV_LOG_DEBUG, "Skipped PREFIX SEI %d\n", type);
         skip_bits_long(gb, 8 * size);

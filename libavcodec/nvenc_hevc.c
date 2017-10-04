@@ -106,7 +106,7 @@ static const AVOption options[] = {
     { "aq-strength",  "When Spatial AQ is enabled, this field is used to specify AQ strength. AQ strength scale is from 1 (low) - 15 (aggressive)",
                                                             OFFSET(aq_strength),  AV_OPT_TYPE_INT,   { .i64 = 8 }, 1, 15, VE },
     { "cq",           "Set target quality level (0 to 51, 0 means automatic) for constant quality mode in VBR rate control",
-                                                            OFFSET(quality),      AV_OPT_TYPE_INT,   { .i64 = 0 }, 0, 51, VE },
+                                                            OFFSET(quality),      AV_OPT_TYPE_FLOAT, { .dbl = 0.}, 0., 51., VE },
     { "aud",          "Use access unit delimiters",         OFFSET(aud),          AV_OPT_TYPE_BOOL,  { .i64 = 0 }, 0, 1, VE },
     { "bluray-compat", "Bluray compatibility workarounds",  OFFSET(bluray_compat),AV_OPT_TYPE_BOOL,  { .i64 = 0 }, 0, 1, VE },
     { "init_qpP",     "Initial QP value for P frame",       OFFSET(init_qp_p),    AV_OPT_TYPE_INT,   { .i64 = -1 }, -1, 51, VE },
@@ -114,6 +114,8 @@ static const AVOption options[] = {
     { "init_qpI",     "Initial QP value for I frame",       OFFSET(init_qp_i),    AV_OPT_TYPE_INT,   { .i64 = -1 }, -1, 51, VE },
     { "qp",           "Constant quantization parameter rate control method",
                                                             OFFSET(cqp),          AV_OPT_TYPE_INT,   { .i64 = -1 }, -1, 51, VE },
+    { "weighted_pred","Set 1 to enable weighted prediction",
+                                                            OFFSET(weighted_pred),AV_OPT_TYPE_INT,   { .i64 = 0 }, 0, 1, VE },
     { NULL }
 };
 
@@ -126,6 +128,7 @@ static const AVCodecDefault defaults[] = {
     { "qcomp", "-1" },
     { "g", "250" },
     { "bf", "0" },
+    { "refs", "0" },
     { NULL },
 };
 
@@ -150,6 +153,8 @@ AVCodec ff_nvenc_hevc_encoder = {
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_HEVC,
     .init           = nvenc_old_init,
+    .send_frame     = ff_nvenc_send_frame,
+    .receive_packet = ff_nvenc_receive_packet,
     .encode2        = ff_nvenc_encode_frame,
     .close          = ff_nvenc_encode_close,
     .priv_data_size = sizeof(NvencContext),
@@ -175,6 +180,8 @@ AVCodec ff_hevc_nvenc_encoder = {
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_HEVC,
     .init           = ff_nvenc_encode_init,
+    .send_frame     = ff_nvenc_send_frame,
+    .receive_packet = ff_nvenc_receive_packet,
     .encode2        = ff_nvenc_encode_frame,
     .close          = ff_nvenc_encode_close,
     .priv_data_size = sizeof(NvencContext),
