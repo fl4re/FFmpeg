@@ -1,0 +1,25 @@
+{
+  "name": "@sb/ffmpeg",
+  "version": "3.3.4-dev1",
+  "description": "Fl4re FFmpeg",
+  "repository": "https://github.com/fl4re/FFmpeg",
+  "private": false,
+  "binary": {
+    "file": "{package_name}/{package_version}/ffmpeg-{package_version}-{platform}-{arch}.tar.gz",
+    "host": "https://registry-node.starbreeze.com/-/releases",
+    "os": [
+      "win32",
+      "darwin"
+    ],
+    "path": [
+      "win64",
+      "win64/**",
+      "macos",
+      "macos/**"
+    ]
+  },
+  "scripts": {
+    "install": "prades install"
+  },
+  "license": "SEE LICENSE IN LICENSE.md"
+}
