@@ -19,7 +19,8 @@
     ]
   },
   "scripts": {
-    "install": "prades install"
+    "install": "prades install",
+    "version": "node -e \"console.log(require('./package.json').version)\""
   },
   "license": "SEE LICENSE IN LICENSE.md"
 }
