@@ -11,7 +11,7 @@ call "%VS140COMNTOOLS%../../VC/bin/amd64/vcvars64.bat"
 if errorlevel 1 exit /b %errorlevel%
 
 
-start "minttyffmpeg" /B /WAIT %MSYS64%\usr\bin\mintty.exe -o daemonize=false -i /msys2.ico /usr/bin/bash --login -c "'%TOPLEVEL%'"/setup_ffmpeg_msvc.sh
+start "minttyffmpeg" /B /WAIT %MSYS64%\usr\bin\mintty.exe -l setup_ffmpeg_msvc.log -o daemonize=false -i /msys2.ico /usr/bin/bash --login -c "'%TOPLEVEL%'"/setup_ffmpeg_msvc.sh
 if errorlevel 1 exit /b %errorlevel%
 
 set PATH=%OLDPATH%
