@@ -31,7 +31,7 @@ trap ItIsATrap ERR TERM INT
 #echo "Done!"
 
 echo -n "Configuring FFmpeg..."
-PATH=$ToolChainDir:$PATH ./configure --arch=x86_64 --toolchain=msvc --enable-shared --disable-gpl --disable-programs --disable-doc --enable-avresample --prefix=./win64 $FL4RE_FFMPEG_CONFIGURE_FLAGS
+PATH=$ToolChainDir:$PATH ./configure --arch=x86_64 --toolchain=msvc --disable-gpl --disable-programs --disable-doc --disable-nvenc --enable-ffprobe --enable-avresample --enable-shared --prefix=./win64 $FL4RE_FFMPEG_CONFIGURE_FLAGS
 echo "Done!"
 echo -n "Making FFmpeg..."
 PATH=$ToolChainDir:$PATH make -j8 $FL4RE_FFMPEG_MAKE_FLAGS
