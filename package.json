@@ -1,6 +1,6 @@
 {
   "name": "@sb/ffmpeg",
-  "version": "3.3.5-dev1",
+  "version": "3.3.5-dev2",
   "description": "Fl4re FFmpeg",
   "repository": "https://github.com/fl4re/FFmpeg",
   "private": false,
