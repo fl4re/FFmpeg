@@ -1,6 +1,6 @@
 {
   "name": "@sb/ffmpeg",
-  "version": "3.3.5-dev2",
+  "version": "__FL4RE_VERSION__",
   "description": "Fl4re FFmpeg",
   "repository": "https://github.com/fl4re/FFmpeg",
   "private": false,
@@ -8,14 +8,11 @@
     "file": "{package_name}/{package_version}/ffmpeg-{package_version}-{platform}-{arch}.tar.gz",
     "host": "https://registry-node.starbreeze.com/-/releases",
     "os": [
-      "win32",
-      "darwin"
+      "win32"
     ],
     "path": [
       "win64",
-      "win64/**",
-      "macos",
-      "macos/**"
+      "win64/**"
     ]
   },
   "scripts": {
