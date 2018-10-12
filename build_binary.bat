@@ -15,11 +15,4 @@ if errorlevel 1 exit /b %errorlevel%
 
 set PATH=%OLDPATH%
 
-
-if exist "%TOPLEVEL%"setup_ffmpeg_msvc.log (
-type "%TOPLEVEL%"setup_ffmpeg_msvc.log
-del /F /Q "%TOPLEVEL%"setup_ffmpeg_msvc.log
-exit /b 1
-)
-
 exit /b 0
