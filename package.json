@@ -1,5 +1,5 @@
 {
-  "name": "@sb/ffmpeg",
+  "name": "@starvr-sdk/ffmpeg",
   "version": "__FL4RE_VERSION__",
   "description": "Fl4re FFmpeg",
   "repository": "https://github.com/fl4re/FFmpeg",
