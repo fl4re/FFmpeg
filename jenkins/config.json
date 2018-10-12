@@ -1,0 +1,11 @@
+{
+  "publish": {
+    "npmPackageJsons": [
+      "package.json"
+    ]
+  },
+  "buildSteps": "build_binary.bat",
+  "copyToJobArtifacts": [
+    "win64/**"
+  ]
+}
