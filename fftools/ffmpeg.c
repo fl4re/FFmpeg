@@ -561,6 +561,7 @@ static void ffmpeg_cleanup(int ret)
         ost->audio_channels_mapped = 0;
 
         av_dict_free(&ost->sws_dict);
+        av_dict_free(&ost->swr_opts);
 
         avcodec_free_context(&ost->enc_ctx);
         avcodec_parameters_free(&ost->ref_par);
@@ -2121,9 +2122,6 @@ static int ifilter_send_frame(InputFilter *ifilter, AVFrame *frame)
 
     /* determine if the parameters for this input changed */
     need_reinit = ifilter->format != frame->format;
-    if (!!ifilter->hw_frames_ctx != !!frame->hw_frames_ctx ||
-        (ifilter->hw_frames_ctx && ifilter->hw_frames_ctx->data != frame->hw_frames_ctx->data))
-        need_reinit = 1;
 
     switch (ifilter->ist->st->codecpar->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
@@ -2136,6 +2134,13 @@ static int ifilter_send_frame(InputFilter *ifilter, AVFrame *frame)
                        ifilter->height != frame->height;
         break;
     }
+
+    if (!ifilter->ist->reinit_filters && fg->graph)
+        need_reinit = 0;
+
+    if (!!ifilter->hw_frames_ctx != !!frame->hw_frames_ctx ||
+        (ifilter->hw_frames_ctx && ifilter->hw_frames_ctx->data != frame->hw_frames_ctx->data))
+        need_reinit = 1;
 
     if (need_reinit) {
         ret = ifilter_parameters_from_frame(ifilter, frame);
@@ -4189,7 +4194,8 @@ static int seek_to_start(InputFile *ifile, AVFormatContext *is)
             ifile->time_base = ist->st->time_base;
         /* the total duration of the stream, max_pts - min_pts is
          * the duration of the stream without the last frame */
-        duration += ist->max_pts - ist->min_pts;
+        if (ist->max_pts > ist->min_pts && ist->max_pts - (uint64_t)ist->min_pts < INT64_MAX - duration)
+            duration += ist->max_pts - ist->min_pts;
         ifile->time_base = duration_max(duration, &ifile->duration, ist->st->time_base,
                                         ifile->time_base);
     }
