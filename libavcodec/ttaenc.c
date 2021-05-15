@@ -164,7 +164,7 @@ pkt_alloc:
                     put_bits(&pb, 31, 0x7FFFFFFF);
                     unary -= 31;
                 } else {
-                    put_bits(&pb, unary, (1 << unary) - 1);
+                    put_bits(&pb, unary, (1U << unary) - 1);
                     unary = 0;
                 }
             } while (unary);
@@ -182,7 +182,7 @@ pkt_alloc:
     }
 
     flush_put_bits(&pb);
-    out_bytes = put_bits_count(&pb) >> 3;
+    out_bytes = put_bytes_output(&pb);
     put_bits32(&pb, av_crc(s->crc_table, UINT32_MAX, avpkt->data, out_bytes) ^ UINT32_MAX);
     flush_put_bits(&pb);
 
@@ -200,7 +200,7 @@ static av_cold int tta_encode_close(AVCodecContext *avctx)
     return 0;
 }
 
-AVCodec ff_tta_encoder = {
+const AVCodec ff_tta_encoder = {
     .name           = "tta",
     .long_name      = NULL_IF_CONFIG_SMALL("TTA (True Audio)"),
     .type           = AVMEDIA_TYPE_AUDIO,
@@ -209,9 +209,10 @@ AVCodec ff_tta_encoder = {
     .init           = tta_encode_init,
     .close          = tta_encode_close,
     .encode2        = tta_encode_frame,
-    .capabilities   = AV_CODEC_CAP_SMALL_LAST_FRAME | AV_CODEC_CAP_LOSSLESS,
+    .capabilities   = AV_CODEC_CAP_SMALL_LAST_FRAME,
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_U8,
                                                      AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_S32,
                                                      AV_SAMPLE_FMT_NONE },
+    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };

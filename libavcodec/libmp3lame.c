@@ -279,7 +279,6 @@ static int mp3lame_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
         if ((discard_padding < avctx->frame_size) != (avpkt->duration > 0)) {
             av_log(avctx, AV_LOG_ERROR, "discard padding overflow\n");
             av_packet_unref(avpkt);
-            av_free(avpkt);
             return AVERROR(EINVAL);
         }
         if ((!s->delay_sent && avctx->initial_padding > 0) || discard_padding > 0) {
@@ -288,7 +287,6 @@ static int mp3lame_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
                                                          10);
             if(!side_data) {
                 av_packet_unref(avpkt);
-                av_free(avpkt);
                 return AVERROR(ENOMEM);
             }
             if (!s->delay_sent) {
@@ -329,7 +327,7 @@ static const int libmp3lame_sample_rates[] = {
     44100, 48000,  32000, 22050, 24000, 16000, 11025, 12000, 8000, 0
 };
 
-AVCodec ff_libmp3lame_encoder = {
+const AVCodec ff_libmp3lame_encoder = {
     .name                  = "libmp3lame",
     .long_name             = NULL_IF_CONFIG_SMALL("libmp3lame MP3 (MPEG audio layer 3)"),
     .type                  = AVMEDIA_TYPE_AUDIO,
@@ -349,4 +347,5 @@ AVCodec ff_libmp3lame_encoder = {
                                                   0 },
     .priv_class            = &libmp3lame_class,
     .defaults              = libmp3lame_defaults,
+    .wrapper_name          = "libmp3lame",
 };

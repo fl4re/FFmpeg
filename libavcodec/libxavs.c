@@ -28,6 +28,7 @@
 #include <xavs.h>
 #include "avcodec.h"
 #include "internal.h"
+#include "packet_internal.h"
 #include "libavutil/internal.h"
 #include "libavutil/mem.h"
 #include "libavutil/opt.h"
@@ -164,11 +165,6 @@ static int XAVS_frame(AVCodecContext *avctx, AVPacket *pkt,
         return 0;
     }
 
-#if FF_API_CODED_FRAME
-FF_DISABLE_DEPRECATION_WARNINGS
-    avctx->coded_frame->pts = pic_out.i_pts;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
     pkt->pts = pic_out.i_pts;
     if (avctx->has_b_frames) {
         if (!x4->out_frame_count)
@@ -193,28 +189,12 @@ FF_ENABLE_DEPRECATION_WARNINGS
     default:
         pict_type = AV_PICTURE_TYPE_NONE;
     }
-#if FF_API_CODED_FRAME
-FF_DISABLE_DEPRECATION_WARNINGS
-    avctx->coded_frame->pict_type = pict_type;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
 
     /* There is no IDR frame in AVS JiZhun */
     /* Sequence header is used as a flag */
     if (pic_out.i_type == XAVS_TYPE_I) {
-#if FF_API_CODED_FRAME
-FF_DISABLE_DEPRECATION_WARNINGS
-        avctx->coded_frame->key_frame = 1;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
         pkt->flags |= AV_PKT_FLAG_KEY;
     }
-
-#if FF_API_CODED_FRAME
-FF_DISABLE_DEPRECATION_WARNINGS
-    avctx->coded_frame->quality = (pic_out.i_qpplus1 - 1) * FF_QP2LAMBDA;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
 
     ff_side_data_set_encoder_stats(pkt, (pic_out.i_qpplus1 - 1) * FF_QP2LAMBDA, NULL, 0, pict_type);
 
@@ -227,7 +207,6 @@ static av_cold int XAVS_close(AVCodecContext *avctx)
 {
     XavsContext *x4 = avctx->priv_data;
 
-    av_freep(&avctx->extradata);
     av_freep(&x4->sei);
     av_freep(&x4->pts_buffer);
 
@@ -283,42 +262,9 @@ static av_cold int XAVS_init(AVCodecContext *avctx)
     if (x4->cplxblur >= 0)
         x4->params.rc.f_complexity_blur = x4->cplxblur;
 
-#if FF_API_MOTION_EST
-FF_DISABLE_DEPRECATION_WARNINGS
-    if (x4->motion_est < 0) {
-        switch (avctx->me_method) {
-        case  ME_EPZS:
-            x4->params.analyse.i_me_method = XAVS_ME_DIA;
-            break;
-        case  ME_HEX:
-            x4->params.analyse.i_me_method = XAVS_ME_HEX;
-            break;
-        case  ME_UMH:
-            x4->params.analyse.i_me_method = XAVS_ME_UMH;
-            break;
-        case  ME_FULL:
-            x4->params.analyse.i_me_method = XAVS_ME_ESA;
-            break;
-        case  ME_TESA:
-            x4->params.analyse.i_me_method = XAVS_ME_TESA;
-            break;
-        default:
-            x4->params.analyse.i_me_method = XAVS_ME_HEX;
-        }
-    }
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
-
     x4->params.i_bframe          = avctx->max_b_frames;
     /* cabac is not included in AVS JiZhun Profile */
     x4->params.b_cabac           = 0;
-
-#if FF_API_PRIVATE_OPT
-FF_DISABLE_DEPRECATION_WARNINGS
-    if (avctx->b_frame_strategy)
-        x4->b_frame_strategy = avctx->b_frame_strategy;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
 
     x4->params.i_bframe_adaptive = x4->b_frame_strategy;
 
@@ -329,13 +275,6 @@ FF_ENABLE_DEPRECATION_WARNINGS
     x4->params.i_keyint_min      = avctx->keyint_min;
     if (x4->params.i_keyint_min > x4->params.i_keyint_max)
         x4->params.i_keyint_min = x4->params.i_keyint_max;
-
-#if FF_API_PRIVATE_OPT
-FF_DISABLE_DEPRECATION_WARNINGS
-    if (avctx->scenechange_threshold)
-        x4->scenechange_threshold = avctx->scenechange_threshold;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
 
     x4->params.i_scenecut_threshold = x4->scenechange_threshold;
 
@@ -368,13 +307,6 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
     x4->params.analyse.i_trellis          = avctx->trellis;
 
-#if FF_API_PRIVATE_OPT
-    FF_DISABLE_DEPRECATION_WARNINGS
-    if (avctx->noise_reduction >= 0)
-        x4->noise_reduction = avctx->noise_reduction;
-    FF_ENABLE_DEPRECATION_WARNINGS
-#endif
-
     x4->params.analyse.i_noise_reduction  = x4->noise_reduction;
 
     if (avctx->level > 0)
@@ -395,13 +327,6 @@ FF_ENABLE_DEPRECATION_WARNINGS
     /* what is the RC method we are now using? Default NO */
     x4->params.rc.f_ip_factor             = 1 / fabs(avctx->i_quant_factor);
     x4->params.rc.f_pb_factor             = avctx->b_quant_factor;
-
-#if FF_API_PRIVATE_OPT
-FF_DISABLE_DEPRECATION_WARNINGS
-    if (avctx->chromaoffset)
-        x4->chroma_offset = avctx->chromaoffset;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
 
     x4->params.analyse.i_chroma_qp_offset = x4->chroma_offset;
 
@@ -465,7 +390,7 @@ static const AVOption options[] = {
     { "mbtree",        "Use macroblock tree ratecontrol.",                OFFSET(mbtree),        AV_OPT_TYPE_BOOL,    {.i64 = -1 }, -1, 1, VE},
     { "mixed-refs",    "One reference per partition, as opposed to one reference per macroblock", OFFSET(mixed_refs), AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE },
     { "fast-pskip",    NULL,                                              OFFSET(fast_pskip),    AV_OPT_TYPE_BOOL,    {.i64 = -1 }, -1, 1, VE},
-    { "motion-est",   "Set motion estimation method",                     OFFSET(motion_est),    AV_OPT_TYPE_INT,    { .i64 = -1 }, -1, XAVS_ME_TESA, VE, "motion-est"},
+    { "motion-est",   "Set motion estimation method",                     OFFSET(motion_est),    AV_OPT_TYPE_INT,    { .i64 = XAVS_ME_DIA }, -1, XAVS_ME_TESA, VE, "motion-est"},
     { "dia",           NULL,      0,    AV_OPT_TYPE_CONST, { .i64 = XAVS_ME_DIA },               INT_MIN, INT_MAX, VE, "motion-est" },
     { "hex",           NULL,      0,    AV_OPT_TYPE_CONST, { .i64 = XAVS_ME_HEX },               INT_MIN, INT_MAX, VE, "motion-est" },
     { "umh",           NULL,      0,    AV_OPT_TYPE_CONST, { .i64 = XAVS_ME_UMH },               INT_MIN, INT_MAX, VE, "motion-est" },
@@ -491,7 +416,7 @@ static const AVCodecDefault xavs_defaults[] = {
     { NULL },
 };
 
-AVCodec ff_libxavs_encoder = {
+const AVCodec ff_libxavs_encoder = {
     .name           = "libxavs",
     .long_name      = NULL_IF_CONFIG_SMALL("libxavs Chinese AVS (Audio Video Standard)"),
     .type           = AVMEDIA_TYPE_VIDEO,
@@ -500,8 +425,10 @@ AVCodec ff_libxavs_encoder = {
     .init           = XAVS_init,
     .encode2        = XAVS_frame,
     .close          = XAVS_close,
-    .capabilities   = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_AUTO_THREADS,
+    .capabilities   = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_OTHER_THREADS,
+    .caps_internal  = FF_CODEC_CAP_AUTO_THREADS,
     .pix_fmts       = (const enum AVPixelFormat[]) { AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE },
     .priv_class     = &xavs_class,
     .defaults       = xavs_defaults,
+    .wrapper_name   = "libxavs",
 };

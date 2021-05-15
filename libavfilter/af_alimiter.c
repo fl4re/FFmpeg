@@ -135,7 +135,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
     if (av_frame_is_writable(in)) {
         out = in;
     } else {
-        out = ff_get_audio_buffer(inlink, in->nb_samples);
+        out = ff_get_audio_buffer(outlink, in->nb_samples);
         if (!out) {
             av_frame_free(&in);
             return AVERROR(ENOMEM);
@@ -327,6 +327,11 @@ static int config_input(AVFilterLink *inlink)
     s->buffer_size = inlink->sample_rate * s->attack * inlink->channels;
     s->buffer_size -= s->buffer_size % inlink->channels;
 
+    if (s->buffer_size <= 0) {
+        av_log(ctx, AV_LOG_ERROR, "Attack is too small.\n");
+        return AVERROR(EINVAL);
+    }
+
     return 0;
 }
 
@@ -357,7 +362,7 @@ static const AVFilterPad alimiter_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_af_alimiter = {
+const AVFilter ff_af_alimiter = {
     .name           = "alimiter",
     .description    = NULL_IF_CONFIG_SMALL("Audio lookahead limiter."),
     .priv_size      = sizeof(AudioLimiterContext),

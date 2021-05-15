@@ -100,16 +100,12 @@ static av_cold int xan_decode_init(AVCodecContext *avctx)
         return AVERROR(ENOMEM);
     s->buffer2_size = avctx->width * avctx->height;
     s->buffer2 = av_malloc(s->buffer2_size + 130);
-    if (!s->buffer2) {
-        av_freep(&s->buffer1);
+    if (!s->buffer2)
         return AVERROR(ENOMEM);
-    }
 
     s->last_frame = av_frame_alloc();
-    if (!s->last_frame) {
-        xan_decode_end(avctx);
+    if (!s->last_frame)
         return AVERROR(ENOMEM);
-    }
 
     return 0;
 }
@@ -131,7 +127,10 @@ static int xan_huffman_decode(uint8_t *dest, int dest_len,
         return ret;
 
     while (val != 0x16) {
-        unsigned idx = val - 0x17 + get_bits1(&gb) * byte;
+        unsigned idx;
+        if (get_bits_left(&gb) < 1)
+            return AVERROR_INVALIDDATA;
+        idx = val - 0x17 + get_bits1(&gb) * byte;
         if (idx >= 2 * byte)
             return AVERROR_INVALIDDATA;
         val = src[idx];
@@ -263,7 +262,7 @@ static inline void xan_wc3_copy_pixel_run(XanContext *s, AVFrame *frame,
     prevframe_index = (y + motion_y) * stride + x + motion_x;
     prevframe_x = x + motion_x;
 
-    if (prev_palette_plane == palette_plane && FFABS(curframe_index - prevframe_index) < pixel_count) {
+    if (prev_palette_plane == palette_plane && FFABS(motion_x + width*motion_y) < pixel_count) {
          avpriv_request_sample(s->avctx, "Overlapping copy");
          return ;
     }
@@ -636,7 +635,7 @@ static int xan_decode_frame(AVCodecContext *avctx,
     return buf_size;
 }
 
-AVCodec ff_xan_wc3_decoder = {
+const AVCodec ff_xan_wc3_decoder = {
     .name           = "xan_wc3",
     .long_name      = NULL_IF_CONFIG_SMALL("Wing Commander III / Xan"),
     .type           = AVMEDIA_TYPE_VIDEO,
@@ -646,4 +645,5 @@ AVCodec ff_xan_wc3_decoder = {
     .close          = xan_decode_end,
     .decode         = xan_decode_frame,
     .capabilities   = AV_CODEC_CAP_DR1,
+    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP | FF_CODEC_CAP_INIT_THREADSAFE,
 };

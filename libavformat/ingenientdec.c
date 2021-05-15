@@ -24,7 +24,7 @@
 #include "libavutil/intreadwrite.h"
 
 // http://multimedia.cx/ingenient.txt
-static int ingenient_probe(AVProbeData *p)
+static int ingenient_probe(const AVProbeData *p)
 {
     if (   AV_RN32(p->buf) != AV_RN32("MJPG")
         || p->buf_size < 50
@@ -63,7 +63,7 @@ static int ingenient_read_packet(AVFormatContext *s, AVPacket *pkt)
 
 FF_RAWVIDEO_DEMUXER_CLASS(ingenient)
 
-AVInputFormat ff_ingenient_demuxer = {
+const AVInputFormat ff_ingenient_demuxer = {
     .name           = "ingenient",
     .long_name      = NULL_IF_CONFIG_SMALL("raw Ingenient MJPEG"),
     .priv_data_size = sizeof(FFRawVideoDemuxerContext),

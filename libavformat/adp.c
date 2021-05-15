@@ -24,10 +24,10 @@
 #include "avformat.h"
 #include "internal.h"
 
-static int adp_probe(AVProbeData *p)
+static int adp_probe(const AVProbeData *p)
 {
     int i, changes = 0;
-    char last = 0;
+    uint8_t last = 0;
 
     if (p->buf_size < 32)
         return 0;
@@ -75,20 +75,15 @@ static int adp_read_packet(AVFormatContext *s, AVPacket *pkt)
         return AVERROR_EOF;
 
     ret = av_get_packet(s->pb, pkt, size);
+    if (ret < 0)
+        return ret;
 
-    if (ret != size) {
-        if (ret < 0) {
-            av_packet_unref(pkt);
-            return ret;
-        }
-        av_shrink_packet(pkt, ret);
-    }
     pkt->stream_index = 0;
 
     return ret;
 }
 
-AVInputFormat ff_adp_demuxer = {
+const AVInputFormat ff_adp_demuxer = {
     .name           = "adp",
     .long_name      = NULL_IF_CONFIG_SMALL("ADP"),
     .read_probe     = adp_probe,

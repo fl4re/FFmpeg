@@ -107,10 +107,11 @@ static int config_input(AVFilterLink *inlink)
     VSMotionDetect* md = &(s->md);
     VSFrameInfo fi;
     const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(inlink->format);
+    int is_planar = desc->flags & AV_PIX_FMT_FLAG_PLANAR;
 
     vsFrameInfoInit(&fi, inlink->w, inlink->h,
                     ff_av2vs_pixfmt(ctx, inlink->format));
-    if (fi.bytesPerPixel != av_get_bits_per_pixel(desc)/8) {
+    if (!is_planar && fi.bytesPerPixel != av_get_bits_per_pixel(desc)/8) {
         av_log(ctx, AV_LOG_ERROR, "pixel-format error: wrong bits/per/pixel, please report a BUG");
         return AVERROR(EINVAL);
     }
@@ -206,7 +207,7 @@ static const AVFilterPad avfilter_vf_vidstabdetect_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_vidstabdetect = {
+const AVFilter ff_vf_vidstabdetect = {
     .name          = "vidstabdetect",
     .description   = NULL_IF_CONFIG_SMALL("Extract relative transformations, "
                                           "pass 1 of 2 for stabilization "

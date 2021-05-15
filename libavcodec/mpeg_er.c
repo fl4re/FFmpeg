@@ -71,12 +71,15 @@ static void mpeg_er_decode_mb(void *opaque, int ref, int mv_dir, int mv_type,
     s->mb_skipped = mb_skipped;
     s->mb_x       = mb_x;
     s->mb_y       = mb_y;
+    s->mcsel      = 0;
     memcpy(s->mv, mv, sizeof(*mv));
 
     ff_init_block_index(s);
     ff_update_block_index(s);
 
     s->bdsp.clear_blocks(s->block[0]);
+    if (!s->chroma_y_shift)
+        s->bdsp.clear_blocks(s->block[6]);
 
     s->dest[0] = s->current_picture.f->data[0] +
                  s->mb_y * 16 * s->linesize +

@@ -1,6 +1,6 @@
 /*
  * MMAL Video Decoder
- * Copyright (c) 2015 Rodger Combs
+ * Copyright (c) 2015 rcombs
  *
  * This file is part of FFmpeg.
  *
@@ -34,6 +34,8 @@
 #include <stdatomic.h>
 
 #include "avcodec.h"
+#include "decode.h"
+#include "hwconfig.h"
 #include "internal.h"
 #include "libavutil/avassert.h"
 #include "libavutil/buffer.h"
@@ -654,11 +656,6 @@ static int ffmal_copy_frame(AVCodecContext *avctx,  AVFrame *frame,
     }
 
     frame->pts = buffer->pts == MMAL_TIME_UNKNOWN ? AV_NOPTS_VALUE : buffer->pts;
-#if FF_API_PKT_PTS
-FF_DISABLE_DEPRECATION_WARNINGS
-    frame->pkt_pts = frame->pts;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
     frame->pkt_dts = AV_NOPTS_VALUE;
 
 done:
@@ -807,32 +804,9 @@ static int ffmmal_decode(AVCodecContext *avctx, void *data, int *got_frame,
     return ret;
 }
 
-AVHWAccel ff_h264_mmal_hwaccel = {
-    .name       = "h264_mmal",
-    .type       = AVMEDIA_TYPE_VIDEO,
-    .id         = AV_CODEC_ID_H264,
-    .pix_fmt    = AV_PIX_FMT_MMAL,
-};
-
-AVHWAccel ff_mpeg2_mmal_hwaccel = {
-    .name       = "mpeg2_mmal",
-    .type       = AVMEDIA_TYPE_VIDEO,
-    .id         = AV_CODEC_ID_MPEG2VIDEO,
-    .pix_fmt    = AV_PIX_FMT_MMAL,
-};
-
-AVHWAccel ff_mpeg4_mmal_hwaccel = {
-    .name       = "mpeg4_mmal",
-    .type       = AVMEDIA_TYPE_VIDEO,
-    .id         = AV_CODEC_ID_MPEG4,
-    .pix_fmt    = AV_PIX_FMT_MMAL,
-};
-
-AVHWAccel ff_vc1_mmal_hwaccel = {
-    .name       = "vc1_mmal",
-    .type       = AVMEDIA_TYPE_VIDEO,
-    .id         = AV_CODEC_ID_VC1,
-    .pix_fmt    = AV_PIX_FMT_MMAL,
+static const AVCodecHWConfigInternal *const mmal_hw_configs[] = {
+    HW_CONFIG_INTERNAL(MMAL),
+    NULL
 };
 
 static const AVOption options[]={
@@ -844,13 +818,14 @@ static const AVOption options[]={
 #define FFMMAL_DEC_CLASS(NAME) \
     static const AVClass ffmmal_##NAME##_dec_class = { \
         .class_name = "mmal_" #NAME "_dec", \
+        .item_name  = av_default_item_name, \
         .option     = options, \
         .version    = LIBAVUTIL_VERSION_INT, \
     };
 
 #define FFMMAL_DEC(NAME, ID) \
     FFMMAL_DEC_CLASS(NAME) \
-    AVCodec ff_##NAME##_mmal_decoder = { \
+    const AVCodec ff_##NAME##_mmal_decoder = { \
         .name           = #NAME "_mmal", \
         .long_name      = NULL_IF_CONFIG_SMALL(#NAME " (mmal)"), \
         .type           = AVMEDIA_TYPE_VIDEO, \
@@ -861,11 +836,13 @@ static const AVOption options[]={
         .decode         = ffmmal_decode, \
         .flush          = ffmmal_flush, \
         .priv_class     = &ffmmal_##NAME##_dec_class, \
-        .capabilities   = AV_CODEC_CAP_DELAY, \
+        .capabilities   = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_HARDWARE, \
         .caps_internal  = FF_CODEC_CAP_SETS_PKT_DTS, \
         .pix_fmts       = (const enum AVPixelFormat[]) { AV_PIX_FMT_MMAL, \
                                                          AV_PIX_FMT_YUV420P, \
                                                          AV_PIX_FMT_NONE}, \
+        .hw_configs     = mmal_hw_configs, \
+        .wrapper_name   = "mmal", \
     };
 
 FFMMAL_DEC(h264, AV_CODEC_ID_H264)

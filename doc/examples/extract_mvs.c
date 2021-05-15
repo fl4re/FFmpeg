@@ -78,7 +78,7 @@ static int open_codec_context(AVFormatContext *fmt_ctx, enum AVMediaType type)
     int ret;
     AVStream *st;
     AVCodecContext *dec_ctx = NULL;
-    AVCodec *dec = NULL;
+    const AVCodec *dec = NULL;
     AVDictionary *opts = NULL;
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, &dec, 0);
@@ -128,8 +128,6 @@ int main(int argc, char **argv)
         exit(1);
     }
     src_filename = argv[1];
-
-    av_register_all();
 
     if (avformat_open_input(&fmt_ctx, src_filename, NULL, NULL) < 0) {
         fprintf(stderr, "Could not open source file %s\n", src_filename);

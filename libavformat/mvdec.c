@@ -46,7 +46,7 @@ typedef struct MvContext {
 
 #define AUDIO_FORMAT_SIGNED 401
 
-static int mv_probe(AVProbeData *p)
+static int mv_probe(const AVProbeData *p)
 {
     if (AV_RB32(p->buf) == MKBETAG('M', 'O', 'V', 'I') &&
         AV_RB16(p->buf + 4) < 3)
@@ -157,9 +157,14 @@ static int parse_audio_var(AVFormatContext *avctx, AVStream *st,
         return set_channels(avctx, st, var_read_int(pb, size));
     } else if (!strcmp(name, "SAMPLE_RATE")) {
         st->codecpar->sample_rate = var_read_int(pb, size);
+        if (st->codecpar->sample_rate <= 0)
+            return AVERROR_INVALIDDATA;
         avpriv_set_pts_info(st, 33, 1, st->codecpar->sample_rate);
     } else if (!strcmp(name, "SAMPLE_WIDTH")) {
-        st->codecpar->bits_per_coded_sample = var_read_int(pb, size) * 8;
+        uint64_t bpc = var_read_int(pb, size) * (uint64_t)8;
+        if (bpc > 16)
+            return AVERROR_INVALIDDATA;
+        st->codecpar->bits_per_coded_sample = bpc;
     } else
         return AVERROR_INVALIDDATA;
 
@@ -210,8 +215,12 @@ static int parse_video_var(AVFormatContext *avctx, AVStream *st,
         st->codecpar->width = var_read_int(pb, size);
     } else if (!strcmp(name, "ORIENTATION")) {
         if (var_read_int(pb, size) == 1101) {
-            st->codecpar->extradata      = av_strdup("BottomUp");
-            st->codecpar->extradata_size = 9;
+            if (!st->codecpar->extradata) {
+                st->codecpar->extradata = av_strdup("BottomUp");
+                if (!st->codecpar->extradata)
+                    return AVERROR(ENOMEM);
+                st->codecpar->extradata_size = 9;
+            }
         }
     } else if (!strcmp(name, "Q_SPATIAL") || !strcmp(name, "Q_TEMPORAL")) {
         var_read_metadata(avctx, name, size);
@@ -227,7 +236,9 @@ static int read_table(AVFormatContext *avctx, AVStream *st,
                        int (*parse)(AVFormatContext *avctx, AVStream *st,
                                     const char *name, int size))
 {
-    int count, i;
+    unsigned count;
+    int i;
+
     AVIOContext *pb = avctx->pb;
     avio_skip(pb, 4);
     count = avio_rb32(pb);
@@ -235,6 +246,10 @@ static int read_table(AVFormatContext *avctx, AVStream *st,
     for (i = 0; i < count; i++) {
         char name[17];
         int size;
+
+        if (avio_feof(pb))
+            return AVERROR_EOF;
+
         avio_read(pb, name, 16);
         name[sizeof(name) - 1] = 0;
         size = avio_rb32(pb);
@@ -258,9 +273,11 @@ static void read_index(AVIOContext *pb, AVStream *st)
         uint32_t pos  = avio_rb32(pb);
         uint32_t size = avio_rb32(pb);
         avio_skip(pb, 8);
+        if (avio_feof(pb))
+            return ;
         av_add_index_entry(st, pos, timestamp, size, 0, AVINDEX_KEYFRAME);
         if (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-            timestamp += size / (st->codecpar->channels * 2);
+            timestamp += size / (st->codecpar->channels * 2LL);
         } else {
             timestamp++;
         }
@@ -347,13 +364,19 @@ static int mv_read_header(AVFormatContext *avctx)
             avio_skip(pb, 8);
             av_add_index_entry(ast, pos, timestamp, asize, 0, AVINDEX_KEYFRAME);
             av_add_index_entry(vst, pos + asize, i, vsize, 0, AVINDEX_KEYFRAME);
-            timestamp += asize / (ast->codecpar->channels * 2);
+            timestamp += asize / (ast->codecpar->channels * 2LL);
         }
     } else if (!version && avio_rb16(pb) == 3) {
         avio_skip(pb, 4);
 
         if ((ret = read_table(avctx, NULL, parse_global_var)) < 0)
             return ret;
+
+        if (mv->nb_audio_tracks < 0  || mv->nb_video_tracks < 0 ||
+           (mv->nb_audio_tracks == 0 && mv->nb_video_tracks == 0)) {
+            av_log(avctx, AV_LOG_ERROR, "Stream count is invalid.\n");
+            return AVERROR_INVALIDDATA;
+        }
 
         if (mv->nb_audio_tracks > 1) {
             avpriv_request_sample(avctx, "Multiple audio streams support");
@@ -417,8 +440,8 @@ static int mv_read_packet(AVFormatContext *avctx, AVPacket *pkt)
     int64_t ret;
     uint64_t pos;
 
-    if (frame < st->nb_index_entries) {
-        index = &st->index_entries[frame];
+    if (frame < st->internal->nb_index_entries) {
+        index = &st->internal->index_entries[frame];
         pos   = avio_tell(pb);
         if (index->pos > pos)
             avio_skip(pb, index->pos - pos);
@@ -477,7 +500,7 @@ static int mv_read_seek(AVFormatContext *avctx, int stream_index,
     return 0;
 }
 
-AVInputFormat ff_mv_demuxer = {
+const AVInputFormat ff_mv_demuxer = {
     .name           = "mv",
     .long_name      = NULL_IF_CONFIG_SMALL("Silicon Graphics Movie"),
     .priv_data_size = sizeof(MvContext),

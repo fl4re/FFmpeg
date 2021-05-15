@@ -61,7 +61,7 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
             if (bytes_left >= 2) {
                 s->pict_type = (buf[1] >> 3) & 7;
                 if (bytes_left >= 4)
-                vbv_delay = ((buf[1] & 0x07) << 13) | (buf[2] << 5) | (buf[3]  >> 3);
+                    vbv_delay = ((buf[1] & 0x07) << 13) | (buf[2] << 5) | (buf[3] >> 3);
             }
             break;
         case SEQ_START_CODE:
@@ -131,7 +131,7 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
                             }
                         }
 
-                        if (!pc->progressive_sequence) {
+                        if (!pc->progressive_sequence && !progressive_frame) {
                             if (top_field_first)
                                 s->field_order = AV_FIELD_TT;
                             else
@@ -154,7 +154,7 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
             break;
         }
     }
- the_end: ;
+ the_end:
     if (set_dim_ret < 0)
         av_log(avctx, AV_LOG_ERROR, "Failed to set dimensions\n");
 
@@ -213,34 +213,16 @@ static int mpegvideo_parse(AVCodecParserContext *s,
     return next;
 }
 
-static int mpegvideo_split(AVCodecContext *avctx,
-                           const uint8_t *buf, int buf_size)
-{
-    int i;
-    uint32_t state= -1;
-    int found=0;
-
-    for(i=0; i<buf_size; i++){
-        state= (state<<8) | buf[i];
-        if(state == 0x1B3){
-            found=1;
-        }else if(found && state != 0x1B5 && state < 0x200 && state >= 0x100)
-            return i-3;
-    }
-    return 0;
-}
-
 static int mpegvideo_parse_init(AVCodecParserContext *s)
 {
     s->pict_type = AV_PICTURE_TYPE_NONE; // first frame might be partial
     return 0;
 }
 
-AVCodecParser ff_mpegvideo_parser = {
+const AVCodecParser ff_mpegvideo_parser = {
     .codec_ids      = { AV_CODEC_ID_MPEG1VIDEO, AV_CODEC_ID_MPEG2VIDEO },
     .priv_data_size = sizeof(struct MpvParseContext),
     .parser_init    = mpegvideo_parse_init,
     .parser_parse   = mpegvideo_parse,
     .parser_close   = ff_parse_close,
-    .split          = mpegvideo_split,
 };

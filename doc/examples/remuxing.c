@@ -45,7 +45,7 @@ static void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, cons
 
 int main(int argc, char **argv)
 {
-    AVOutputFormat *ofmt = NULL;
+    const AVOutputFormat *ofmt = NULL;
     AVFormatContext *ifmt_ctx = NULL, *ofmt_ctx = NULL;
     AVPacket pkt;
     const char *in_filename, *out_filename;
@@ -64,8 +64,6 @@ int main(int argc, char **argv)
 
     in_filename  = argv[1];
     out_filename = argv[2];
-
-    av_register_all();
 
     if ((ret = avformat_open_input(&ifmt_ctx, in_filename, 0, 0)) < 0) {
         fprintf(stderr, "Could not open input file '%s'", in_filename);

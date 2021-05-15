@@ -114,9 +114,13 @@ static int libgsm_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
     return 0;
 }
 
+static const AVCodecDefault libgsm_defaults[] = {
+    { "b",                "13000" },
+    { NULL },
+};
 
 #if CONFIG_LIBGSM_ENCODER
-AVCodec ff_libgsm_encoder = {
+const AVCodec ff_libgsm_encoder = {
     .name           = "libgsm",
     .long_name      = NULL_IF_CONFIG_SMALL("libgsm GSM"),
     .type           = AVMEDIA_TYPE_AUDIO,
@@ -124,12 +128,15 @@ AVCodec ff_libgsm_encoder = {
     .init           = libgsm_encode_init,
     .encode2        = libgsm_encode_frame,
     .close          = libgsm_encode_close,
+    .defaults       = libgsm_defaults,
+    .channel_layouts= (const uint64_t[]) { AV_CH_LAYOUT_MONO, 0 },
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_NONE },
+    .wrapper_name   = "libgsm",
 };
 #endif
 #if CONFIG_LIBGSM_MS_ENCODER
-AVCodec ff_libgsm_ms_encoder = {
+const AVCodec ff_libgsm_ms_encoder = {
     .name           = "libgsm_ms",
     .long_name      = NULL_IF_CONFIG_SMALL("libgsm GSM Microsoft variant"),
     .type           = AVMEDIA_TYPE_AUDIO,
@@ -137,7 +144,10 @@ AVCodec ff_libgsm_ms_encoder = {
     .init           = libgsm_encode_init,
     .encode2        = libgsm_encode_frame,
     .close          = libgsm_encode_close,
+    .defaults       = libgsm_defaults,
+    .channel_layouts= (const uint64_t[]) { AV_CH_LAYOUT_MONO, 0 },
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_NONE },
+    .wrapper_name   = "libgsm",
 };
 #endif

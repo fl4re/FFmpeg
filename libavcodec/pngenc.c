@@ -741,18 +741,18 @@ static int apng_encode_frame(AVCodecContext *avctx, const AVFrame *pict,
     diffFrame->format = pict->format;
     diffFrame->width = pict->width;
     diffFrame->height = pict->height;
-    if ((ret = av_frame_get_buffer(diffFrame, 32)) < 0)
+    if ((ret = av_frame_get_buffer(diffFrame, 0)) < 0)
         goto fail;
 
     original_bytestream = s->bytestream;
     original_bytestream_end = s->bytestream_end;
 
     temp_bytestream = av_malloc(original_bytestream_end - original_bytestream);
-    temp_bytestream_end = temp_bytestream + (original_bytestream_end - original_bytestream);
     if (!temp_bytestream) {
         ret = AVERROR(ENOMEM);
         goto fail;
     }
+    temp_bytestream_end = temp_bytestream + (original_bytestream_end - original_bytestream);
 
     for (last_fctl_chunk.dispose_op = 0; last_fctl_chunk.dispose_op < 3; ++last_fctl_chunk.dispose_op) {
         // 0: APNG_DISPOSE_OP_NONE
@@ -956,7 +956,7 @@ static int encode_apng(AVCodecContext *avctx, AVPacket *pkt,
                 s->prev_frame->format = pict->format;
                 s->prev_frame->width = pict->width;
                 s->prev_frame->height = pict->height;
-                if ((ret = av_frame_get_buffer(s->prev_frame, 32)) < 0)
+                if ((ret = av_frame_get_buffer(s->prev_frame, 0)) < 0)
                     return ret;
             }
 
@@ -1008,23 +1008,7 @@ static av_cold int png_enc_init(AVCodecContext *avctx)
         avctx->bits_per_coded_sample = 8;
     }
 
-#if FF_API_CODED_FRAME
-FF_DISABLE_DEPRECATION_WARNINGS
-    avctx->coded_frame->pict_type = AV_PICTURE_TYPE_I;
-    avctx->coded_frame->key_frame = 1;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
-
     ff_llvidencdsp_init(&s->llvidencdsp);
-
-#if FF_API_PRIVATE_OPT
-FF_DISABLE_DEPRECATION_WARNINGS
-    if (avctx->prediction_method)
-        s->filter_type = av_clip(avctx->prediction_method,
-                                 PNG_FILTER_VALUE_NONE,
-                                 PNG_FILTER_VALUE_MIXED);
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
 
     if (avctx->pix_fmt == AV_PIX_FMT_MONOBLACK)
         s->filter_type = PNG_FILTER_VALUE_NONE;
@@ -1137,7 +1121,7 @@ static const AVClass apngenc_class = {
     .version    = LIBAVUTIL_VERSION_INT,
 };
 
-AVCodec ff_png_encoder = {
+const AVCodec ff_png_encoder = {
     .name           = "png",
     .long_name      = NULL_IF_CONFIG_SMALL("PNG (Portable Network Graphics) image"),
     .type           = AVMEDIA_TYPE_VIDEO,
@@ -1146,7 +1130,7 @@ AVCodec ff_png_encoder = {
     .init           = png_enc_init,
     .close          = png_enc_close,
     .encode2        = encode_png,
-    .capabilities   = AV_CODEC_CAP_FRAME_THREADS | AV_CODEC_CAP_INTRA_ONLY,
+    .capabilities   = AV_CODEC_CAP_FRAME_THREADS,
     .pix_fmts       = (const enum AVPixelFormat[]) {
         AV_PIX_FMT_RGB24, AV_PIX_FMT_RGBA,
         AV_PIX_FMT_RGB48BE, AV_PIX_FMT_RGBA64BE,
@@ -1156,9 +1140,10 @@ AVCodec ff_png_encoder = {
         AV_PIX_FMT_MONOBLACK, AV_PIX_FMT_NONE
     },
     .priv_class     = &pngenc_class,
+    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };
 
-AVCodec ff_apng_encoder = {
+const AVCodec ff_apng_encoder = {
     .name           = "apng",
     .long_name      = NULL_IF_CONFIG_SMALL("APNG (Animated Portable Network Graphics) image"),
     .type           = AVMEDIA_TYPE_VIDEO,
@@ -1174,7 +1159,8 @@ AVCodec ff_apng_encoder = {
         AV_PIX_FMT_PAL8,
         AV_PIX_FMT_GRAY8, AV_PIX_FMT_GRAY8A,
         AV_PIX_FMT_GRAY16BE, AV_PIX_FMT_YA16BE,
-        AV_PIX_FMT_MONOBLACK, AV_PIX_FMT_NONE
+        AV_PIX_FMT_NONE
     },
     .priv_class     = &apngenc_class,
+    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };

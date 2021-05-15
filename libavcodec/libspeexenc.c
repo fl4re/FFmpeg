@@ -159,9 +159,9 @@ static av_cold int encode_init(AVCodecContext *avctx)
 
     /* sample rate and encoding mode */
     switch (avctx->sample_rate) {
-    case  8000: mode = &speex_nb_mode;  break;
-    case 16000: mode = &speex_wb_mode;  break;
-    case 32000: mode = &speex_uwb_mode; break;
+    case  8000: mode = speex_lib_get_mode(SPEEX_MODEID_NB);  break;
+    case 16000: mode = speex_lib_get_mode(SPEEX_MODEID_WB);  break;
+    case 32000: mode = speex_lib_get_mode(SPEEX_MODEID_UWB); break;
     default:
         av_log(avctx, AV_LOG_ERROR, "Sample rate of %d Hz is not supported. "
                "Resample to 8, 16, or 32 kHz.\n", avctx->sample_rate);
@@ -318,7 +318,6 @@ static av_cold int encode_close(AVCodecContext *avctx)
     speex_encoder_destroy(s->enc_state);
 
     ff_af_queue_close(&s->afq);
-    av_freep(&avctx->extradata);
 
     return 0;
 }
@@ -347,7 +346,7 @@ static const AVCodecDefault defaults[] = {
     { NULL },
 };
 
-AVCodec ff_libspeex_encoder = {
+const AVCodec ff_libspeex_encoder = {
     .name           = "libspeex",
     .long_name      = NULL_IF_CONFIG_SMALL("libspeex Speex"),
     .type           = AVMEDIA_TYPE_AUDIO,
@@ -365,4 +364,5 @@ AVCodec ff_libspeex_encoder = {
     .supported_samplerates = (const int[]){ 8000, 16000, 32000, 0 },
     .priv_class     = &speex_class,
     .defaults       = defaults,
+    .wrapper_name   = "libspeex",
 };

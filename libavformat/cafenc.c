@@ -81,6 +81,8 @@ static uint32_t samples_per_packet(enum AVCodecID codec_id, int channels, int bl
         return 320;
     case AV_CODEC_ID_MP1:
         return 384;
+    case AV_CODEC_ID_OPUS:
+        return 960;
     case AV_CODEC_ID_MP2:
     case AV_CODEC_ID_MP3:
         return 1152;
@@ -117,9 +119,13 @@ static int caf_write_header(AVFormatContext *s)
 
     switch (par->codec_id) {
     case AV_CODEC_ID_AAC:
-    case AV_CODEC_ID_OPUS:
         av_log(s, AV_LOG_ERROR, "muxing codec currently unsupported\n");
         return AVERROR_PATCHWELCOME;
+    }
+
+    if (par->codec_id == AV_CODEC_ID_OPUS && par->channels > 2) {
+        av_log(s, AV_LOG_ERROR, "Only mono and stereo are supported for Opus\n");
+        return AVERROR_INVALIDDATA;
     }
 
     if (!codec_tag) {
@@ -197,7 +203,6 @@ static int caf_write_header(AVFormatContext *s)
     avio_wb64(pb, -1);        //< mChunkSize
     avio_wb32(pb, 0);         //< mEditCount
 
-    avio_flush(pb);
     return 0;
 }
 
@@ -253,13 +258,12 @@ static int caf_write_trailer(AVFormatContext *s)
             avio_write(pb, caf->pkt_sizes, caf->size_entries_used);
             caf->size_buffer_size = 0;
         }
-        avio_flush(pb);
     }
     av_freep(&caf->pkt_sizes);
     return 0;
 }
 
-AVOutputFormat ff_caf_muxer = {
+const AVOutputFormat ff_caf_muxer = {
     .name           = "caf",
     .long_name      = NULL_IF_CONFIG_SMALL("Apple CAF (Core Audio Format)"),
     .mime_type      = "audio/x-caf",
@@ -270,5 +274,5 @@ AVOutputFormat ff_caf_muxer = {
     .write_header   = caf_write_header,
     .write_packet   = caf_write_packet,
     .write_trailer  = caf_write_trailer,
-    .codec_tag      = (const AVCodecTag* const []){ff_codec_caf_tags, 0},
+    .codec_tag      = ff_caf_codec_tags_list,
 };

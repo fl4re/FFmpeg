@@ -39,9 +39,9 @@ typedef struct SgiContext {
 static av_cold int encode_init(AVCodecContext *avctx)
 {
     if (avctx->width > 65535 || avctx->height > 65535) {
-        av_log(avctx, AV_LOG_ERROR,
-               "Unsupported resolution %dx%d.\n", avctx->width, avctx->height);
-        av_log(avctx, AV_LOG_ERROR, "SGI does not support resolutions above 65535x65535\n");
+        av_log(avctx, AV_LOG_ERROR, "Unsupported resolution %dx%d. "
+               "SGI does not support resolutions above 65535x65535\n",
+               avctx->width, avctx->height);
         return AVERROR_INVALIDDATA;
     }
 
@@ -99,20 +99,6 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     int x, y, z, length, tablesize, ret, i;
     unsigned int width, height, depth, dimension;
     unsigned int bytes_per_channel, pixmax, put_be;
-
-#if FF_API_CODED_FRAME
-FF_DISABLE_DEPRECATION_WARNINGS
-    avctx->coded_frame->pict_type = AV_PICTURE_TYPE_I;
-    avctx->coded_frame->key_frame = 1;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
-
-#if FF_API_CODER_TYPE
-FF_DISABLE_DEPRECATION_WARNINGS
-    if (avctx->coder_type == FF_CODER_TYPE_RAW)
-        s->rle = 0;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
 
     width  = avctx->width;
     height = avctx->height;
@@ -219,7 +205,15 @@ FF_ENABLE_DEPRECATION_WARNINGS
                 bytestream2_put_be32(&taboff_pcb, bytestream2_tell_p(&pbc));
 
                 for (x = 0; x < width * bytes_per_channel; x += bytes_per_channel)
-                    encode_buf[x] = in_buf[depth * x];
+                    if (bytes_per_channel == 1) {
+                        encode_buf[x]     = in_buf[depth * x];
+                    } else if (HAVE_BIGENDIAN ^ put_be) {
+                        encode_buf[x + 1] = in_buf[depth * x];
+                        encode_buf[x]     = in_buf[depth * x + 1];
+                    } else {
+                        encode_buf[x]     = in_buf[depth * x];
+                        encode_buf[x + 1] = in_buf[depth * x + 1];
+                    }
 
                 length = sgi_rle_encode(&pbc, encode_buf, width,
                                         bytes_per_channel);
@@ -276,7 +270,7 @@ static const AVClass sgi_class = {
     .version    = LIBAVUTIL_VERSION_INT,
 };
 
-AVCodec ff_sgi_encoder = {
+const AVCodec ff_sgi_encoder = {
     .name      = "sgi",
     .long_name = NULL_IF_CONFIG_SMALL("SGI image"),
     .type      = AVMEDIA_TYPE_VIDEO,
@@ -292,4 +286,5 @@ AVCodec ff_sgi_encoder = {
         AV_PIX_FMT_GRAY16LE, AV_PIX_FMT_GRAY16BE, AV_PIX_FMT_GRAY8,
         AV_PIX_FMT_NONE
     },
+    .caps_internal = FF_CODEC_CAP_INIT_THREADSAFE,
 };

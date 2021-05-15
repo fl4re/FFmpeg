@@ -23,6 +23,7 @@
 #include "parser.h"
 #include "mpegaudiodecheader.h"
 #include "libavutil/common.h"
+#include "libavformat/apetag.h" // for APE tag.
 #include "libavformat/id3v1.h" // for ID3v1_TAG_SIZE
 
 typedef struct MpegAudioParseContext {
@@ -98,7 +99,9 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
                     } else if (codec_id == AV_CODEC_ID_MP3ADU) {
                         avpriv_report_missing_feature(avctx,
                             "MP3ADU full parser");
-                        return 0; /* parsers must not return error codes */
+                        *poutbuf = NULL;
+                        *poutbuf_size = 0;
+                        return buf_size; /* parsers must not return error codes */
                     }
 
                     break;
@@ -120,13 +123,19 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
         return next;
     }
 
+    if (flush && buf_size >= APE_TAG_FOOTER_BYTES && memcmp(buf, APE_TAG_PREAMBLE, 8) == 0) {
+        *poutbuf = NULL;
+        *poutbuf_size = 0;
+        return next;
+    }
+
     *poutbuf = buf;
     *poutbuf_size = buf_size;
     return next;
 }
 
 
-AVCodecParser ff_mpegaudio_parser = {
+const AVCodecParser ff_mpegaudio_parser = {
     .codec_ids      = { AV_CODEC_ID_MP1, AV_CODEC_ID_MP2, AV_CODEC_ID_MP3, AV_CODEC_ID_MP3ADU },
     .priv_data_size = sizeof(MpegAudioParseContext),
     .parser_parse   = mpegaudio_parse,

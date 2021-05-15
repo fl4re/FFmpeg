@@ -27,15 +27,14 @@
 #include "h263data.h"
 #include "rl.h"
 
-#if !FF_API_ASPECT_EXTENDED
 #define FF_ASPECT_EXTENDED 15
-#endif
 #define INT_BIT (CHAR_BIT * sizeof(int))
 
 // The defines below define the number of bits that are read at once for
 // reading vlc values. Changing these may improve speed and data cache needs
 // be aware though that decreasing them may need the number of stages that is
 // passed to get_vlc* to be increased.
+#define H263_MV_VLC_BITS     9
 #define INTRA_MCBPC_VLC_BITS 6
 #define INTER_MCBPC_VLC_BITS 7
 #define CBPY_VLC_BITS 6
@@ -46,6 +45,7 @@
 extern VLC ff_h263_intra_MCBPC_vlc;
 extern VLC ff_h263_inter_MCBPC_vlc;
 extern VLC ff_h263_cbpy_vlc;
+extern VLC ff_h263_mv_vlc;
 
 extern const enum AVPixelFormat ff_h263_hwaccel_pixfmt_list_420[];
 
@@ -66,6 +66,7 @@ int16_t *ff_h263_pred_motion(MpegEncContext * s, int block, int dir,
                              int *px, int *py);
 void ff_h263_encode_init(MpegEncContext *s);
 void ff_h263_decode_init_vlc(void);
+void ff_h263_init_rl_inter(void);
 int ff_h263_decode_picture_header(MpegEncContext *s);
 int ff_h263_decode_gob_header(MpegEncContext *s);
 void ff_h263_update_motion_val(MpegEncContext * s);

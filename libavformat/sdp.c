@@ -212,7 +212,7 @@ static char *extradata2psets(AVFormatContext *s, AVCodecParameters *par)
         p += strlen(p);
         r = r1;
     }
-    if (sps && sps_end - sps >= 4) {
+    if (sps && sps_end - sps >= 4 && p - psets <= MAX_PSET_SIZE - strlen(profile_string) - 7) {
         memcpy(p, profile_string, strlen(profile_string));
         p += strlen(p);
         ff_data_to_hex(p, sps + 1, 3, 0);
@@ -347,7 +347,8 @@ static char *extradata2config(AVFormatContext *s, AVCodecParameters *par)
 
 static char *xiph_extradata2config(AVFormatContext *s, AVCodecParameters *par)
 {
-    char *config, *encoded_config;
+    uint8_t *config;
+    char *encoded_config;
     const uint8_t *header_start[3];
     int headers_len, header_len[3], config_len;
     int first_header_size;
@@ -584,6 +585,12 @@ static char *sdp_write_media_attributes(char *buff, int size, AVStream *st, int 
                                          payload_type,
                                          p->sample_rate, p->channels);
             break;
+        case AV_CODEC_ID_PCM_S24BE:
+            if (payload_type >= RTP_PT_PRIVATE)
+                av_strlcatf(buff, size, "a=rtpmap:%d L24/%d/%d\r\n",
+                                         payload_type,
+                                         p->sample_rate, p->channels);
+            break;
         case AV_CODEC_ID_PCM_MULAW:
             if (payload_type >= RTP_PT_PRIVATE)
                 av_strlcatf(buff, size, "a=rtpmap:%d PCMU/%d/%d\r\n",
@@ -674,6 +681,14 @@ static char *sdp_write_media_attributes(char *buff, int size, AVStream *st, int 
             break;
         case AV_CODEC_ID_ADPCM_G726: {
             if (payload_type >= RTP_PT_PRIVATE)
+                av_strlcatf(buff, size, "a=rtpmap:%d AAL2-G726-%d/%d\r\n",
+                                         payload_type,
+                                         p->bits_per_coded_sample*8,
+                                         p->sample_rate);
+            break;
+        }
+        case AV_CODEC_ID_ADPCM_G726LE: {
+            if (payload_type >= RTP_PT_PRIVATE)
                 av_strlcatf(buff, size, "a=rtpmap:%d G726-%d/%d\r\n",
                                          payload_type,
                                          p->bits_per_coded_sample*8,
@@ -689,20 +704,6 @@ static char *sdp_write_media_attributes(char *buff, int size, AVStream *st, int 
         case AV_CODEC_ID_SPEEX:
             av_strlcatf(buff, size, "a=rtpmap:%d speex/%d\r\n",
                                      payload_type, p->sample_rate);
-            if (st->codec) {
-                const char *mode;
-                uint64_t vad_option;
-
-                if (st->codec->flags & AV_CODEC_FLAG_QSCALE)
-                      mode = "on";
-                else if (!av_opt_get_int(st->codec, "vad", AV_OPT_FLAG_ENCODING_PARAM, &vad_option) && vad_option)
-                      mode = "vad";
-                else
-                      mode = "off";
-
-                av_strlcatf(buff, size, "a=fmtp:%d vbr=%s\r\n",
-                                        payload_type, mode);
-            }
             break;
         case AV_CODEC_ID_OPUS:
             /* The opus RTP draft says that all opus streams MUST be declared
@@ -770,7 +771,7 @@ int av_sdp_create(AVFormatContext *ac[], int n_files, char *buf, int size)
     port = 0;
     ttl = 0;
     if (n_files == 1) {
-        port = sdp_get_address(dst, sizeof(dst), &ttl, ac[0]->filename);
+        port = sdp_get_address(dst, sizeof(dst), &ttl, ac[0]->url ? ac[0]->url : "");
         is_multicast = resolve_destination(dst, sizeof(dst), dst_type,
                                            sizeof(dst_type));
         if (!is_multicast)
@@ -790,7 +791,7 @@ int av_sdp_create(AVFormatContext *ac[], int n_files, char *buf, int size)
     dst[0] = 0;
     for (i = 0; i < n_files; i++) {
         if (n_files != 1) {
-            port = sdp_get_address(dst, sizeof(dst), &ttl, ac[i]->filename);
+            port = sdp_get_address(dst, sizeof(dst), &ttl, ac[i]->url ? ac[i]->url : "");
             is_multicast = resolve_destination(dst, sizeof(dst), dst_type,
                                                sizeof(dst_type));
             if (!is_multicast)

@@ -62,6 +62,9 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     h = (buf[1] + 1) * 8;
     buf += 2;
 
+    if (avpkt->size < 2 + w*h / 513)
+        return AVERROR_INVALIDDATA;
+
     if (w != avctx->width || h != avctx->height) {
         av_freep(&c->frame_buffer);
         av_freep(&c->last_frame_buffer);
@@ -173,7 +176,7 @@ static av_cold int decode_end(AVCodecContext *avctx)
     return 0;
 }
 
-AVCodec ff_kgv1_decoder = {
+const AVCodec ff_kgv1_decoder = {
     .name           = "kgv1",
     .long_name      = NULL_IF_CONFIG_SMALL("Kega Game Video"),
     .type           = AVMEDIA_TYPE_VIDEO,
@@ -184,4 +187,5 @@ AVCodec ff_kgv1_decoder = {
     .decode         = decode_frame,
     .flush          = decode_flush,
     .capabilities   = AV_CODEC_CAP_DR1,
+    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };

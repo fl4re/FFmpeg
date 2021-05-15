@@ -30,6 +30,7 @@
 
 #include "libavutil/avassert.h"
 #include "libavutil/eval.h"
+#include "libavutil/mem_internal.h"
 #include "libavutil/opt.h"
 #include "internal.h"
 
@@ -821,7 +822,7 @@ static const AVFilterPad dctdnoiz_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_dctdnoiz = {
+const AVFilter ff_vf_dctdnoiz = {
     .name          = "dctdnoiz",
     .description   = NULL_IF_CONFIG_SMALL("Denoise frames using 2D DCT."),
     .priv_size     = sizeof(DCTdnoizContext),

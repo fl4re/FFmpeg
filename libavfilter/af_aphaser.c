@@ -247,7 +247,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *inbuf)
     if (av_frame_is_writable(inbuf)) {
         outbuf = inbuf;
     } else {
-        outbuf = ff_get_audio_buffer(inlink, inbuf->nb_samples);
+        outbuf = ff_get_audio_buffer(outlink, inbuf->nb_samples);
         if (!outbuf) {
             av_frame_free(&inbuf);
             return AVERROR(ENOMEM);
@@ -290,7 +290,7 @@ static const AVFilterPad aphaser_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_af_aphaser = {
+const AVFilter ff_af_aphaser = {
     .name          = "aphaser",
     .description   = NULL_IF_CONFIG_SMALL("Add a phasing effect to the audio."),
     .query_formats = query_formats,
